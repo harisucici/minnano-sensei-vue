@@ -112,10 +112,21 @@ import { mapGetters, mapActions } from 'vuex';
 const aiService = {
   async generateResponse(userInput, context = '', conversationHistory = []) {
     // Check if API key is configured
-    const apiKey = process.env.VUE_APP_QWEN_API_KEY || '';
+    // Log environment variables for debugging
+    console.log('Environment variables:', import.meta.env);
+    console.log('VUE_APP_QWEN_API_KEY:', import.meta.env.VUE_APP_QWEN_API_KEY);
+    
+    const apiKey = import.meta.env.VUE_APP_QWEN_API_KEY || '';
+    
+    // Verify the API key format (should start with 'sk-' for Qwen)
+    if (!apiKey.startsWith('sk-')) {
+      console.warn('Invalid API key format. Qwen API keys should start with "sk-". Using mock response.');
+      return this.generateMockResponse(userInput);
+    }
     
     if (!apiKey) {
       console.warn('Qwen API key is not configured. Using mock response.');
+      console.warn('Make sure your .env file has the correct variable name starting with VUE_APP_');
       return this.generateMockResponse(userInput);
     }
 
@@ -152,11 +163,17 @@ const aiService = {
         })
       });
 
+      console.log('API Response Status:', response.status); // Debug log
+      console.log('API Response Headers:', [...response.headers.entries()]); // Debug log
+      
       if (!response.ok) {
-        throw new Error(`API request failed with status ${response.status}`);
+        const errorText = await response.text(); // Get error details
+        console.error('API Error Response:', errorText);
+        throw new Error(`API request failed with status ${response.status}: ${errorText}`);
       }
 
       const data = await response.json();
+      console.log('API Response Data:', data); // Debug log
       
       if (data.choices && data.choices.length > 0) {
         return data.choices[0].message.content;
@@ -164,7 +181,8 @@ const aiService = {
         throw new Error('Invalid response from Qwen API');
       }
     } catch (error) {
-      console.error('Error calling Qwen API:', error);
+      console.error('Error calling Qwen API:', error.message || error);
+      console.error('Full error details:', error);
       // Fallback to mock response if API fails
       return this.generateMockResponse(userInput);
     }
@@ -391,57 +409,242 @@ export default {
   height: 100vh;
   display: flex;
   flex-direction: column;
+  font-size: 14px; /* Consistent font size */
 }
 
 .practice-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 2rem;
+  padding: 0.75rem 1.5rem; /* Reduced padding */
   background: white;
   border-bottom: 1px solid #eee;
+  flex-shrink: 0; /* Prevent header from shrinking */
+  height: 60px; /* Set fixed height */
+  min-height: 60px; /* Ensure minimum height */
 }
 
 .practice-header h1 {
   margin: 0;
   color: #333;
+  font-size: 1.2rem; /* Smaller font size */
 }
 
 .session-info {
   display: flex;
-  gap: 1.5rem;
+  gap: 1rem; /* Reduced gap */
 }
 
 .current-streak, .session-timer {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.9rem;
+  font-size: 0.85rem; /* Smaller font size */
   color: #666;
 }
 
 .streak-icon, .timer-icon {
-  font-size: 1.2rem;
+  font-size: 1rem; /* Smaller icons */
 }
 
 .practice-container {
   display: flex;
   flex: 1;
   overflow: hidden;
+  height: calc(100vh - 60px); /* Account for header height */
 }
 
 .chat-area {
   flex: 1;
   display: flex;
   flex-direction: column;
+  height: 100%; /* Ensure full height */
 }
 
 #chat-messages {
   flex: 1;
   overflow-y: auto;
-  padding: 1.5rem;
+  padding: 1rem; /* Reduced padding */
   background-color: #f9f9f9;
+  height: calc(100% - 120px); /* Account for input area and controls */
+  max-height: calc(100vh - 170px); /* Maximum height accounting for all elements */
+  scroll-behavior: smooth; /* Smooth scrolling behavior */
 }
+
+.input-area {
+  padding: 1rem; /* Reduced padding */
+  background: white;
+  border-top: 1px solid #eee;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem; /* Reduced gap */
+  flex-shrink: 0; /* Prevent input area from shrinking */
+  height: 120px; /* Fixed height for input area */
+  min-height: 120px; /* Minimum height */
+}
+
+.message-content {
+  max-width: 80%;
+  padding: 0.75rem; /* Reduced padding */
+  border-radius: 8px; /* Slightly smaller border radius */
+  line-height: 1.4; /* Tighter line height */
+  font-size: 0.9rem; /* Smaller font size */
+}
+
+.message-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.25rem;
+  font-size: 0.8rem; /* Smaller font size */
+}
+
+.timestamp {
+  color: #999;
+  font-weight: normal;
+}
+
+.input-area {
+  padding: 1rem; /* Reduced padding */
+  background: white;
+  border-top: 1px solid #eee;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem; /* Reduced gap */
+}
+
+.input-area textarea {
+  flex: 1;
+  padding: 0.75rem; /* Reduced padding */
+  border: 1px solid #ddd;
+  border-radius: 4px; /* Smaller border radius */
+  resize: vertical;
+  min-height: 70px; /* Reduced min height */
+  font-size: 0.9rem; /* Smaller font size */
+  font-family: inherit;
+}
+
+.input-controls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.send-btn, .clear-btn {
+  padding: 0.5rem 1rem; /* Reduced padding */
+  border: none;
+  border-radius: 4px; /* Smaller border radius */
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.9rem; /* Smaller font size */
+}
+
+.practice-sidebar {
+  width: 250px; /* Reduced width */
+  background: white;
+  border-left: 1px solid #eee;
+  padding: 1rem; /* Reduced padding */
+  overflow-y: auto;
+  font-size: 0.9rem; /* Smaller font size */
+}
+
+.tips-section h3, .grammar-help h3, .session-summary h3 {
+  margin-top: 0;
+  color: #333;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 0.5rem;
+  font-size: 1rem; /* Smaller font size */
+}
+
+.tips-section ul {
+  padding-left: 1rem; /* Reduced padding */
+  font-size: 0.85rem; /* Smaller font size */
+  color: #666;
+}
+
+.grammar-help {
+  margin: 1rem 0; /* Reduced margin */
+}
+
+.grammar-item {
+  padding: 0.5rem; /* Reduced padding */
+  border: 1px solid #eee;
+  border-radius: 4px; /* Smaller border radius */
+  margin-bottom: 0.5rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-size: 0.85rem; /* Smaller font size */
+}
+
+.grammar-pattern {
+  font-weight: bold;
+  color: #1a73e8;
+  display: block;
+}
+
+.grammar-desc {
+  font-size: 0.75rem; /* Smaller font size */
+  color: #666;
+}
+
+.session-summary {
+  margin-top: 1rem; /* Reduced margin */
+}
+
+.summary-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0; /* Reduced padding */
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.summary-label {
+  color: #666;
+  font-size: 0.8rem; /* Smaller font size */
+}
+
+.summary-value {
+  font-weight: 500;
+  color: #333;
+}
+
+.auth-required {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  text-align: center;
+  padding: 1.5rem; /* Reduced padding */
+  background: #f5f7fa;
+  font-size: 14px; /* Consistent font size */
+}
+
+.auth-required h2 {
+  color: #1a73e8;
+  margin-bottom: 1rem;
+  font-size: 1.2rem; /* Smaller font size */
+}
+
+.auth-required p {
+  margin-bottom: 1.5rem;
+  color: #666;
+  max-width: 400px;
+  font-size: 0.9rem; /* Smaller font size */
+}
+
+.cta-button {
+  background-color: #1a73e8;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem; /* Reduced padding */
+  font-size: 1rem; /* Appropriate font size */
+  border-radius: 20px; /* More rounded */
+  cursor: pointer;
+  font-weight: bold;
+  text-decoration: none;
+  display: inline-block;
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+</style>
 
 .message {
   margin-bottom: 1.5rem;
@@ -647,4 +850,3 @@ export default {
   display: inline-block;
   transition: transform 0.3s, box-shadow 0.3s;
 }
-</style>

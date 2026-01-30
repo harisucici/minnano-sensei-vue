@@ -10,5 +10,6 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist'
-  }
+  },
+  envPrefix: 'VUE_APP_', // Ensure VUE_APP_ prefixed variables are exposed
 })
